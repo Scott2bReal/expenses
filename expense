@@ -1,6 +1,8 @@
 #! /usr/bin/env ruby
 
-require "pg"
+require 'pg'
+
+CONNECTION = PG.connect(dbname: 'expenses')
 
 def display_help
   msg = <<~MSG
@@ -18,9 +20,13 @@ MSG
   puts msg
 end
 
+def add_expense(amount, memo)
+  sql = "INSERT INTO expenses(amount, memo, created_on) VALUES (#{amount}, '#{memo}', NOW())"
+  CONNECTION.exec(sql)
+end
+
 def list_expenses
-  db = PG.connect(dbname: "expenses")
-  result = db.exec("SELECT * FROM expenses;")
+  result = CONNECTION.exec('SELECT * FROM expenses;')
 
   result.each do |tuple|
     columns = [tuple['id'].rjust(3),
@@ -33,8 +39,15 @@ end
 
 argument = ARGV.first
 
-if argument == 'list'
+# Main program flow
+case argument
+when 'list'
   list_expenses
+when 'add'
+  amount = ARGV[1]
+  memo = ARGV[2]
+  abort "You must provide an amount and a memo." unless amount && memo
+  add_expense(amount, memo)
 else
   display_help
 end
