@@ -2,4 +2,10 @@
 
 require "pg"
 
-puts "Hello World"
+db = PG.connect(dbname: "expenses")
+
+result = db.exec("SELECT * FROM expenses;")
+
+result.each_row do |r|
+  puts "#{r[0]} | #{r[3]} | #{r[1].rjust((9 - r[1].length))} | #{r[2]}"
+end
