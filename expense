@@ -20,10 +20,12 @@ MSG
   puts msg
 end
 
+# rubocop:disable Metrics/LineLength
 def add_expense(amount, memo)
   sql = "INSERT INTO expenses(amount, memo, created_on) VALUES (#{amount}, '#{memo}', NOW())"
   CONNECTION.exec(sql)
 end
+# rubocop:enable Metrics/LineLength
 
 def list_expenses
   result = CONNECTION.exec('SELECT * FROM expenses;')
