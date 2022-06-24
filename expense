@@ -2,10 +2,39 @@
 
 require "pg"
 
-db = PG.connect(dbname: "expenses")
+def display_help
+  msg = <<~MSG
+  An expense recording system
 
-result = db.exec("SELECT * FROM expenses;")
+  Commands:
 
-result.each_row do |r|
-  puts "#{r[0]} | #{r[3]} | #{r[1].rjust((9 - r[1].length))} | #{r[2]}"
+  add AMOUNT MEMO [DATE] - record a new expense
+  clear - delete all expenses
+  list - list all expenses
+  delete NUMBER - remove expense with id NUMBER
+  search QUERY - list expenses with a matching memo field
+MSG
+
+  puts msg
+end
+
+def list_expenses
+  db = PG.connect(dbname: "expenses")
+  result = db.exec("SELECT * FROM expenses;")
+
+  result.each do |tuple|
+    columns = [tuple['id'].rjust(3),
+               tuple['created_on'].rjust(10),
+               tuple['amount'].rjust(9 - tuple['amount'].length),
+               tuple['memo']]
+    puts columns.join(' | ')
+  end
+end
+
+argument = ARGV.first
+
+if argument == 'list'
+  list_expenses
+else
+  display_help
 end
