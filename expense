@@ -6,6 +6,7 @@ require 'io/console'
 class ExpenseData
   def initialize
     @connection = PG.connect(dbname: 'expenses')
+    setup_schema
   end
 
   attr_reader :connection
@@ -19,6 +20,8 @@ class ExpenseData
 
   def list_expenses
     result = connection.exec('SELECT * FROM expenses;')
+
+    display_count(result)
     display_result(result)
   end
 
@@ -26,6 +29,7 @@ class ExpenseData
     sql = "SELECT * FROM expenses WHERE memo ILIKE $1"
     result = connection.exec_params(sql, ["%#{search_term}%"])
 
+    display_count(result)
     display_result(result)
   end
 
@@ -46,6 +50,33 @@ class ExpenseData
 
   private
 
+  def setup_schema
+    count = connection.exec("SELECT COUNT(*) FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = 'expenses';")
+
+    schema = File.read("./sql/schema.sql")
+
+    connection.exec(schema) unless count == 1
+  end
+
+  def display_count(result)
+    count = result.ntuples
+
+    if count.positive?
+      puts "There are #{count} expenses."
+    else
+      puts "There are no expenses"
+    end
+  end
+
+  def display_total(result)
+    total = result.sum { |row| row["amount"].to_f }
+    puts <<~SUM
+      -------------------------------------------
+      Total #{total.to_s.rjust(18)}
+      SUM
+  end
+
   def display_delete_message(id)
     puts 'The following expense has been deleted:'
     display_result(get_row_by_id(id))
@@ -59,6 +90,8 @@ class ExpenseData
                  tuple['memo']]
       puts columns.join(' | ')
     end
+
+    display_total(result) if result.ntuples.positive?
   end
 
   def get_row_by_id(id)
